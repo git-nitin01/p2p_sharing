@@ -6,3 +6,4 @@ build
 .env
 .next
 node_modules
+.idea
