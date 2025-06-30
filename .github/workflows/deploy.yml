@@ -18,13 +18,14 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to GCP
         run: |
-          ssh ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} << 'EOF'
-            cd /home/${USER}/p2p_sharing
+          ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} << 'EOF'
+            cd ~/p2p_sharing
             git pull origin main
             docker-compose down
             docker-compose up --build -d
           EOF
+
