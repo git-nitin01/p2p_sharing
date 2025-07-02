@@ -21,6 +21,10 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/p2p-backend:latest ./app
           docker push ${{ secrets.DOCKER_USERNAME }}/p2p-backend:latest
 
+      - name: Write .env file for frontend
+        run: |
+          echo "${{ secrets.FRONTEND_ENV }}" > ./ui/.env
+
       - name: Build and Push Frontend Image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/p2p-frontend:latest ./ui
