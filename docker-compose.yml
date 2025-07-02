@@ -1,12 +1,12 @@
 services:
   backend:
-    image: nitinbawa/p2p-backend:latest
+    image: nitin890/p2p-backend:latest
     container_name: backend
     expose:
       - "4000"
 
   nextjs:
-    image: nitinbawa/p2p-frontend:latest
+    image: nitin890/p2p-frontend:latest
     container_name: nextjs
     expose:
       - "3000"
