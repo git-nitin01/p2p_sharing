@@ -150,15 +150,8 @@ export default function Home() {
   
   
 
-  const handleCodeChange = (index: number, value: string) => {
-    const newShareCode = [...shareCode];
-    newShareCode[index] = value.toUpperCase();
-    setShareCode(newShareCode);
-    
-    // Move to next input if character entered
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+  const handleCodeChange = (newValue: string[]) => {
+    setShareCode(newValue);
   };
 
   const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
