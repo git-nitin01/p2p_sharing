@@ -1,4 +1,4 @@
-name: Deploy to GCP
+name: Build and Deploy to GCP
 
 on:
   push:
@@ -6,26 +6,38 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup SSH Key
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build and Push Backend Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/p2p-backend:latest ./app
+          docker push ${{ secrets.DOCKER_USERNAME }}/p2p-backend:latest
+
+      - name: Build and Push Frontend Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/p2p-frontend:latest ./ui
+          docker push ${{ secrets.DOCKER_USERNAME }}/p2p-frontend:latest
+
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to GCP
+      - name: Deploy to GCP VM
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} << 'EOF'
+          ssh ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} << 'EOF'
             cd ~/p2p_sharing
             git pull origin main
-            docker-compose down
-            docker-compose up --build -d
+            docker compose pull
+            docker compose up -d
           EOF
-
