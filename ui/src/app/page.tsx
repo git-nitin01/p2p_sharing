@@ -1,70 +1,186 @@
 "use client";
-import React, { useState } from "react";
-import { Toaster } from "react-hot-toast";
-import ShareMode from "../components/ShareMode";
-import ReceiveMode from "../components/ReceiveMode";
-
-const features = [
-  {
-    icon: (
-      <span className="bg-purple-600 text-white rounded-full p-2 mr-2">
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path d="M13 2.05v2.02A7.001 7.001 0 0 1 19.93 11H21.95A9.003 9.003 0 0 0 13 2.05ZM11 2.05A9.003 9.003 0 0 0 2.05 11H4.07A7.001 7.001 0 0 1 11 4.07V2.05ZM4.07 13H2.05A9.003 9.003 0 0 0 11 21.95v-2.02A7.001 7.001 0 0 1 4.07 13ZM13 21.95A9.003 9.003 0 0 0 21.95 13H19.93A7.001 7.001 0 0 1 13 19.93v2.02ZM12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" fill="currentColor"/>
-        </svg>
-      </span>
-    ),
-    title: "Lightning Fast",
-    desc: "Direct peer-to-peer connections ensure maximum transfer speeds without server bottlenecks.",
-  },
-  {
-    icon: (
-      <span className="bg-green-600 text-white rounded-full p-2 mr-2">
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10C22 6.48 17.52 2 12 2Zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9Z" fill="currentColor"/>
-        </svg>
-      </span>
-    ),
-    title: "Ultra Secure",
-    desc: "Your files are never stored after it is downloaded from the other end. In any case, the file is deleted after 24 hours.",
-  },
-  {
-    icon: (
-      <span className="bg-pink-600 text-white rounded-full p-2 mr-2">
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10C22 6.48 17.52 2 12 2Zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8Zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="currentColor"/>
-        </svg>
-      </span>
-    ),
-    title: "No Limits",
-    desc: "Share files of any size without restrictions or storage limitations.",
-  },
-];
+import React, { useRef, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import Navbar from "./components/Navbar";
+import FeaturesSection from "./components/FeaturesSection";
+import OTPInput from "./components/OTPInput";
+import ShareCodeDisplay from "./components/ShareCodeDisplay";
 
 export default function Home() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // New state for receive functionality
   const [mode, setMode] = useState<'share' | 'receive'>('share');
+  const [shareCode, setShareCode] = useState(['', '', '', '', '', '']);
+  const [uploadedShareCode, setUploadedShareCode] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [fileDownload, setFileDownload] = useState<string | null>(null);
 
-  const handleUploadSuccess = (code: string) => {
-    // You can add any global state management here if needed
-    console.log("Upload successful with code:", code);
+  const handleDrop = (e: React.DragEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      setSelectedFile(file);
+      setError(null);
+      setUploadedFile(null);
+      setUploadedShareCode(null);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setError(null);
+      setUploadedFile(null);
+      setUploadedShareCode(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      setError("Please select a file.");
+      return;
+    }
+    
+    const formData = new FormData();
+    // Make it max 30mb
+    if (selectedFile.size > 30 * 1024 * 1024) {
+      setError("File size must be less than 30MB.");
+      return;
+    }
+    formData.append("file", selectedFile);
+    setUploading(true);
+    setProgress(0);
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload");
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        setUploading(false);
+        if (xhr.status === 200) {
+          const res = JSON.parse(xhr.responseText);
+          setUploadedFile(res.message || "File uploaded");
+          if (res.code) {
+            setUploadedShareCode(res.code);
+          }
+        } else {
+          setError("Upload failed: " + xhr.statusText);
+        }
+      };
+      xhr.onerror = () => {
+        setUploading(false);
+        setError("Upload failed: Network error");
+      };
+      xhr.send(formData);
+    } catch (err) {
+      setUploading(false);
+      setError("Upload failed: " + (err as Error).message);
+    }
+  };
+
+  const handleStartStreaming = async () => {
+    const codeStr = shareCode.join('').trim();
+    if (!codeStr) {
+      setError("Please enter a share code.");
+      return;
+    }
+  
+    setError(null);
+  
+    try {
+      const resolveRes = await fetch(`/api/upload?code=${codeStr}`);
+      if (!resolveRes.ok) {
+        throw new Error(`Could not resolve code: ${resolveRes.status}`);
+      }
+  
+      const { port, file } = await resolveRes.json();
+      if (!port) {
+        throw new Error("No streaming port received from backend.");
+      }
+      setFileDownload(file);
+  
+    } catch (err) {
+      setError("Download failed: " + (err as Error).message);
+    }
+  };
+
+  const handleDownload = async () => {
+    const codeStr = shareCode.join('').trim();
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/download?code=${codeStr}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileDownload || "file";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("File download started!");
+  }
+  
+
+  const handleCodeChange = (index: number, value: string) => {
+    const newShareCode = [...shareCode];
+    newShareCode[index] = value.toUpperCase();
+    setShareCode(newShareCode);
+    
+    // Move to next input if character entered
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Move to previous input on backspace if current input is empty
+    if (e.key === 'Backspace' && !shareCode[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleCodePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').toUpperCase();
+    
+    // Only process if it's a 6-character alphanumeric string
+    if (pastedData.length === 6 && /^[A-Z0-9]{6}$/.test(pastedData)) {
+      const newShareCode = [...shareCode];
+      for (let i = 0; i < 6; i++) {
+        newShareCode[i] = pastedData[i];
+      }
+      setShareCode(newShareCode);
+      
+      // Focus the last input after paste
+      inputRefs.current[5]?.focus();
+    }
   };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#7b5cff] via-[#5f5fff] to-[#a685ff] flex flex-col">
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-8 py-4 bg-transparent">
-        <div className="flex items-center gap-2">
-          <span className="bg-white/10 rounded-full p-2">
-            <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10C22 6.48 17.52 2 12 2Zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9Z" fill="#fff"/>
-            </svg>
-          </span>
-          <span className="text-white font-bold text-xl tracking-tight">ShareFlow</span>
-        </div>
-        <div className="flex gap-6 items-center text-white/80 text-sm">
-          <a href="#contribute" className="hover:text-white transition">Contribute</a>
-          <a href="#buymeacoffee" className="hover:text-white transition">Buy me a coffee</a>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center flex-1 text-center px-4 pt-8 pb-16">
@@ -72,10 +188,8 @@ export default function Home() {
           Share Files <span className="text-purple-300">Instantly</span>
         </h1>
         <p className="text-lg sm:text-2xl text-white/80 mb-8 max-w-2xl">
-          Secure, fast, and direct peer-to-peer file sharing. No servers, no limits, just pure connection.
+          Secure, fast, and direct peer-to-peer file sharing. No servers, just pure connection.
         </p>
-        
-        {/* Mode Toggle Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
           <button 
             onClick={() => setMode('share')}
@@ -99,25 +213,128 @@ export default function Home() {
           </button>
         </div>
         
-        {/* Mode Components */}
-        {mode === 'share' && <ShareMode onUploadSuccess={handleUploadSuccess} />}
-        {mode === 'receive' && <ReceiveMode />}
+        {/* Share Mode - Upload Box */}
+        {mode === 'share' && (
+          <>
+            <form
+              onSubmit={handleSubmit}
+              className={`mx-auto w-full max-w-xl bg-white/10 border-2 border-dashed ${dragActive ? "border-blue-400 bg-blue-100/20" : "border-white/20"} rounded-xl p-8 flex flex-col items-center transition`}
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <div
+                className="flex flex-col items-center justify-center cursor-pointer w-full"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="mb-2">
+                  <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><path d="M12 16v-8m0 0-3 3m3-3 3 3M20 16.5A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-1A2.5 2.5 0 0 1 6.5 13H7v-1a5 5 0 0 1 10 0v1h.5A2.5 2.5 0 0 1 20 15.5v1Z" stroke="#a685ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <span className="text-white/90 text-lg font-medium">Drag & drop files here or click to browse</span>
+              </div>
+              
+              {/* Selected File Display */}
+              {selectedFile && (
+                <div className="w-full mt-6 p-4 bg-white/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" stroke="#a685ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M14 2v6h6" stroke="#a685ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <div>
+                        <p className="text-white font-medium">{selectedFile.name}</p>
+                        <p className="text-white/70 text-sm">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFile(null)}
+                      className="text-white/70 hover:text-white"
+                    >
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Upload Button */}
+              {selectedFile && !uploading && (
+                <button
+                  type="submit"
+                  className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition cursor-pointer hover:scale-105"
+                >
+                  Upload File
+                </button>
+              )}
+              
+              {uploading && (
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mt-6">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+              )}
+              {uploadedFile && (
+                <div className="text-green-200 mt-4">{uploadedFile}</div>
+              )}
+              {error && (
+                <div className="text-red-200 mt-4">{error}</div>
+              )}
+            </form>
+
+            {/* Share Code Display */}
+            {uploadedShareCode && (
+              <ShareCodeDisplay code={uploadedShareCode} color="blue" label="Share Code" sublabel="Share this code with others to let them download your file" copyText="Copy Code" />
+            )}
+          </>
+        )}
+
+        {/* Receive Mode - Code Prompt */}
+        {mode === 'receive' && (
+          <>
+            <div className="mx-auto w-full max-w-xl bg-white/10 border-2 border-white/20 rounded-xl p-8 flex flex-col items-center">
+              <div className="w-full mb-6"> 
+                <OTPInput value={shareCode} onChange={handleCodeChange} onKeyDown={handleCodeKeyDown} onPaste={handleCodePaste} inputRefs={inputRefs} />
+              </div>
+              {shareCode.every(code => code.trim()) && (
+                <>
+                  {fileDownload && (
+                    <div className="text-green-200 mt-4">File available to download: {fileDownload}</div>
+                  )}
+                  <button
+                    onClick={fileDownload ? handleDownload : handleStartStreaming}
+                    className={`
+                      bg-gray-600 hover:bg-black disabled:bg-gray-600 text-white font-semibold px-8 py-3 rounded-lg shadow transition w-full cursor-pointer hover:scale-105
+                      ${fileDownload ? '!bg-green-600 hover:bg-green-700' : ''}
+                    `}
+                  >
+                    {fileDownload ? 'Start Download' : 'Start Streaming'}
+                  </button>
+                </>
+              )}
+              
+
+              {error && (
+                <div className="text-red-200 mt-4">{error}</div>
+              )}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Features Section */}
-      <section id="features" className="bg-[#181c2a] py-16 px-4">
-        <h2 className="text-3xl font-bold text-white text-center mb-8">Why Choose ShareFlow?</h2>
-        <p className="text-white/70 text-center mb-12 max-w-2xl mx-auto">Experience the future of file sharing with cutting-edge technology</p>
-        <div className="flex flex-col md:flex-row gap-8 justify-center items-center max-w-4xl mx-auto">
-          {features.map((f, i) => (
-            <div key={i} className="bg-[#23263a] rounded-xl p-8 flex-1 h-[240px] w-[260px] max-w-sm flex flex-col items-start shadow-lg">
-              {f.icon}
-              <h3 className="text-xl font-semibold text-white mb-2 mt-3">{f.title}</h3>
-              <p className="text-white/70">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <FeaturesSection />
       
       {/* Toast Container */}
       <Toaster />

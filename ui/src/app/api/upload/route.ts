@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const backendURL = process.env.JAVA_BACKEND_URL || "http://localhost:4000";
+const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,10 +11,11 @@ export async function POST(req: NextRequest) {
       method: "POST",
       body: formData,
     });
+
     const response = await result.json();
     return NextResponse.json(response);
   } catch (error) {
-    return NextResponse.json({ error: "Upload failed " + error }, { status: 500 });
+    return NextResponse.json({ error: "Upload failed" + error }, { status: 500 });
   }
 }
 
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(resolveData);
   } catch (error) {
-    return NextResponse.json({ error: `Download failed: ${error}` }, { status: 500 });
+    return NextResponse.json({ error: "Download failed" + error }, { status: 500 });
   }
 
 }

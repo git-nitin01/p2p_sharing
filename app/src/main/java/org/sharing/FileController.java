@@ -26,6 +26,7 @@ public class FileController {
 
         server.createContext("/upload", new UploadHandler());
         server.createContext("/resolve", new ResolveHandler());
+        server.createContext("/download", new ProxyDownloader());
 
         server.setExecutor(executorService);
     }

@@ -32,15 +32,7 @@ public class FileStreamer {
                 try(
                         FileInputStream fis = new FileInputStream(file);
                         OutputStream os = client.getOutputStream();
-                        PrintWriter pw = new PrintWriter(os, true);
                         ){
-                    pw.println("HTTP/1.1 200 OK");
-                    pw.println("Content-Type: application/octet-stream");
-                    pw.println("Content-Disposition: attachment; filename=\"" + file.getName() + "\"");
-                    pw.println("Content-Length: " + file.length());
-                    pw.println();
-                    pw.flush();
-
 
                     byte[] chunk = new byte[8192];
                     int bytesRead;
@@ -48,10 +40,7 @@ public class FileStreamer {
                         os.write(chunk, 0, bytesRead);
                     }
                     os.flush();
-                    fis.close();
 
-                    file.delete();
-                    sessions.remove(code);
                     System.out.println("File sent and session cleaned: " + code);
                 }
             } catch (IOException ex) {
@@ -60,6 +49,17 @@ public class FileStreamer {
         }).start();
 
         return new StreamResult(code, port);
+    }
+
+    public static void deleteManual(String code) {
+        ShareSession session = sessions.get(code);
+        if(session != null) {
+            session.file.delete();
+            sessions.remove(code);
+            System.out.println(code + " session cleanup success!" );
+        } else {
+            System.out.println("No active session found with code: " + code);
+        }
     }
 
     public static String getFileName(String code) {
