@@ -24,6 +24,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} << 'EOF'
             cd ~/p2p_sharing
+            git pull origin main
             docker compose pull
             docker compose up -d
           EOF
