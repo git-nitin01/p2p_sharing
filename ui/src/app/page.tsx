@@ -129,17 +129,25 @@ export default function Home() {
 
   const handleDownload = async () => {
     const codeStr = shareCode.join('').trim();
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/download?code=${codeStr}`);
+  
+    const res = await fetch(`/api/download?code=${codeStr}`);
+    if (!res.ok) {
+      toast.error("Failed to download.");
+      return;
+    }
+  
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
+  
+    const a = document.createElement('a');
     a.href = url;
-    a.download = fileDownload || "file";
+    a.download = fileDownload || "file"; // optional fallback
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("File download started!");
-  }
+  
+    toast.success("Download started!");
+  };
+  
   
 
   const handleCodeChange = (index: number, value: string) => {
@@ -157,23 +165,6 @@ export default function Home() {
     // Move to previous input on backspace if current input is empty
     if (e.key === 'Backspace' && !shareCode[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleCodePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').toUpperCase();
-    
-    // Only process if it's a 6-character alphanumeric string
-    if (pastedData.length === 6 && /^[A-Z0-9]{6}$/.test(pastedData)) {
-      const newShareCode = [...shareCode];
-      for (let i = 0; i < 6; i++) {
-        newShareCode[i] = pastedData[i];
-      }
-      setShareCode(newShareCode);
-      
-      // Focus the last input after paste
-      inputRefs.current[5]?.focus();
     }
   };
 
@@ -305,7 +296,7 @@ export default function Home() {
           <>
             <div className="mx-auto w-full max-w-xl bg-white/10 border-2 border-white/20 rounded-xl p-8 flex flex-col items-center">
               <div className="w-full mb-6"> 
-                <OTPInput value={shareCode} onChange={handleCodeChange} onKeyDown={handleCodeKeyDown} onPaste={handleCodePaste} inputRefs={inputRefs} />
+                <OTPInput value={shareCode} onChange={handleCodeChange} onKeyDown={handleCodeKeyDown} inputRefs={inputRefs} />
               </div>
               {shareCode.every(code => code.trim()) && (
                 <>

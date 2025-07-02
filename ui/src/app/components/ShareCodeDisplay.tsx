@@ -35,8 +35,25 @@ const ShareCodeDisplay: React.FC<ShareCodeDisplayProps> = ({ code, color = 'blue
     <div className="text-center">
       <button
         onClick={() => {
-          navigator.clipboard.writeText(code);
-          toast.success("Code copied to clipboard");
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(code)
+              .then(() => toast.success("Code copied to clipboard!"))
+              .catch(() => toast.error("Failed to copy code"));
+          } else {
+            const textarea = document.createElement("textarea");
+            textarea.value = code;
+            textarea.style.position = "fixed";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+              document.execCommand('copy');
+              toast.success("Code copied to clipboard!");
+            } catch (err) {
+              toast.error("Failed to copy code" + err);
+            }
+            document.body.removeChild(textarea);
+          }
         }}
         className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition-colors text-sm"
       >
