@@ -72,7 +72,7 @@ export default function Home() {
     setProgress(0);
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/api/upload");
+      xhr.open("POST", "/upload");
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           setProgress(Math.round((event.loaded / event.total) * 100));
