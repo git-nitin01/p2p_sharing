@@ -150,9 +150,7 @@ export default function Home() {
   
   
 
-  const handleCodeChange = (newValue: string[]) => {
-    setShareCode(newValue);
-  };
+  const handleCodeChange = (newValue: string[]) => setShareCode(newValue);
 
   const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     // Move to previous input on backspace if current input is empty
@@ -172,7 +170,7 @@ export default function Home() {
           Share Files <span className="text-purple-300">Instantly</span>
         </h1>
         <p className="text-lg sm:text-2xl text-white/80 mb-8 max-w-2xl">
-          Secure, fast, and direct peer-to-peer file sharing. No servers, just pure connection.
+          Secure, fast, and direct peer-to-peer file sharing. Experience the global file sharing protocol.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center">
           <button 

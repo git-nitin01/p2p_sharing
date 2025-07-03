@@ -32,9 +32,14 @@ const OTPInput: React.FC<OTPInputProps> = ({ value, onChange, onKeyDown, inputRe
           type="text"
           value={code}
           onChange={e => {
+            const val = e.target.value.toUpperCase();
             const newValue = [...value];
-            newValue[index] = e.target.value.toUpperCase();
+            newValue[index] = val;
             onChange(newValue);
+            // Move to next input if character entered
+            if (val && index < 5) {
+              inputRefs.current[index + 1]?.focus();
+            }
           }}
           onKeyDown={e => onKeyDown(index, e)}
           onPaste={handlePaste}

@@ -8,10 +8,6 @@ const Navbar = () => (
       </span>
       <span className="text-white font-bold text-xl tracking-tight">ShareFlow</span>
     </div>
-    <div className="flex gap-6 items-center text-white/80 text-sm">
-      <a href="#contribute" className="hover:text-white transition">Contribute</a>
-      <a href="#buymeacoffee" className="hover:text-white transition">Buy me a coffee</a>
-    </div>
   </nav>
 );
 
