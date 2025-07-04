@@ -21,6 +21,8 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [fileDownload, setFileDownload] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const handleDrop = (e: React.DragEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -129,23 +131,46 @@ export default function Home() {
 
   const handleDownload = async () => {
     const codeStr = shareCode.join('').trim();
-  
-    const res = await fetch(`/api/download?code=${codeStr}`);
-    if (!res.ok) {
+    setDownloading(true);
+    setDownloadProgress(0);
+    try {
+      const res = await fetch(`/api/download?code=${codeStr}`);
+      if (!res.ok || !res.body) {
+        setDownloading(false);
+        toast.error("Failed to download.");
+        return;
+      }
+      const contentLength = res.headers.get('Content-Length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      let loaded = 0;
+      const reader = res.body.getReader();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          loaded += value.length;
+          if (total) {
+            setDownloadProgress(Math.round((loaded / total) * 100));
+          }
+        }
+      }
+      const blob = new Blob(chunks);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileDownload || "file";
+      a.click();
+      URL.revokeObjectURL(url);
+      setDownloading(false);
+      setDownloadProgress(100);
+      toast.success("File downloaded successfully!");
+    } catch (err) {
+      console.error(err);
+      setDownloading(false);
       toast.error("Failed to download.");
-      return;
     }
-  
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-  
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileDownload || "file"; // optional fallback
-    a.click();
-    URL.revokeObjectURL(url);
-  
-    toast.success("Download started!");
   };
   
   
@@ -161,6 +186,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#7b5cff] via-[#5f5fff] to-[#a685ff] flex flex-col">
+      {/* Top Download Progress Bar */}
+      {downloading && (
+        <div className="fixed top-0 left-0 w-full h-1 z-50">
+          <div
+            className="bg-green-500 h-1 transition-all duration-200"
+            style={{ width: `${downloadProgress}%` }}
+          ></div>
+        </div>
+      )}
       {/* Navbar */}
       <Navbar />
 
