@@ -8,3 +8,4 @@ build
 node_modules
 .idea
 uploads
+.DS_Store
