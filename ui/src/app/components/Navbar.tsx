@@ -1,4 +1,5 @@
 import React from "react";
+import githubLogo from "../assets/github-mark.png"
 
 const Navbar = () => (
   <nav className="flex items-center justify-between px-8 py-4 bg-transparent">
@@ -7,6 +8,11 @@ const Navbar = () => (
         <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10C22 6.48 17.52 2 12 2Zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9Z" fill="#fff"/></svg>
       </span>
       <span className="text-white font-bold text-xl tracking-tight">ShareFlow</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <a href="https://github.com/git-nitin01/p2p_sharing" target="_blank" rel="noopener noreferrer" className="text-white">
+        <img src={githubLogo?.src ?? String(githubLogo)} alt="GitHub" width={28} height={28} />
+      </a>
     </div>
   </nav>
 );
